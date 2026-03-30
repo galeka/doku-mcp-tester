@@ -1,0 +1,12 @@
+{
+  "app": {
+    "host": "127.0.0.1",
+    "port": 5000,
+    "debug": true
+  },
+  "doku": {
+    "mcp_url": "https://api-sandbox.doku.com/doku-mcp-server/mcp",
+    "client_id": "YOUR_CLIENT_ID",
+    "api_key": "YOUR_API_KEY"
+  }
+}

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>DOKU MCP Tester</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1100px;
+      margin: 24px auto;
+      padding: 0 16px;
+      line-height: 1.5;
+      background: #f7f8fa;
+    }
+    h1, h2 {
+      margin-bottom: 8px;
+    }
+    .card {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 18px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    button {
+      padding: 10px 14px;
+      cursor: pointer;
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      margin-bottom: 12px;
+      box-sizing: border-box;
+      font-family: monospace;
+      border: 1px solid #bbb;
+      border-radius: 6px;
+      background: #fff;
+    }
+    textarea {
+      min-height: 220px;
+      resize: vertical;
+    }
+    .small {
+      color: #666;
+      font-size: 14px;
+      margin-top: -6px;
+      margin-bottom: 10px;
+    }
+    .output {
+      min-height: 240px;
+      background: #111827;
+      color: #e5e7eb;
+    }
+    .status {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: bold;
+      margin-bottom: 12px;
+    }
+    .idle { background: #e5e7eb; color: #111827; }
+    .ok { background: #dcfce7; color: #166534; }
+    .error { background: #fee2e2; color: #991b1b; }
+  </style>
+</head>
+<body>
+  <h1>DOKU MCP Tester</h1>
+  <p>Simple UI to test DOKU MCP connection, load tools, and call tools manually.</p>
+
+  <div class="card">
+    <h2>Connection</h2>
+    <div id="connectionStatus" class="status idle">Not tested</div><br>
+    <button onclick="testConnection()">Test Connection</button>
+    <textarea id="connectionResult" class="output" readonly placeholder="Connection result will appear here..."></textarea>
+  </div>
+
+  <div class="card">
+    <h2>Tools</h2>
+    <button onclick="loadTools()">Load Tools</button>
+    <div class="small">This output is shown in a textbox so it is easier to scroll and copy.</div>
+    <textarea id="toolsOutput" class="output" readonly placeholder="Tools list will appear here..."></textarea>
+  </div>
+
+  <div class="card">
+    <h2>Call Tool</h2>
+    <label for="toolName">Tool Name</label>
+    <input id="toolName" placeholder="create_virtual_account_payment">
+
+    <label for="toolArgs">Arguments JSON</label>
+    <div class="small">You can paste either full {"toolRequest": {...}} or just the inner JSON. The backend will auto-wrap if needed.</div>
+    <textarea id="toolArgs">{
+  "toolRequest": {
+    "channel": "VIRTUAL_ACCOUNT_BCA",
+    "virtualAccountName": "John Doe",
+    "amount": "10000.00",
+    "trxId": "VA-BCA-001"
+  }
+}</textarea>
+
+    <button onclick="callTool()">Call Tool</button>
+    <textarea id="callOutput" class="output" readonly placeholder="Tool response will appear here..."></textarea>
+  </div>
+
+  <script>
+    function pretty(obj) {
+      return JSON.stringify(obj, null, 2);
+    }
+
+    function setConnectionStatus(type, text) {
+      const el = document.getElementById("connectionStatus");
+      el.className = "status " + type;
+      el.textContent = text;
+    }
+
+    async function testConnection() {
+      const output = document.getElementById("connectionResult");
+      output.value = "Testing connection...";
+      setConnectionStatus("idle", "Testing...");
+
+      try {
+        const res = await fetch("/api/test-connection");
+        const data = await res.json();
+        output.value = pretty(data);
+
+        if (data.ok) {
+          setConnectionStatus("ok", "Connected");
+        } else {
+          setConnectionStatus("error", "Failed");
+        }
+      } catch (err) {
+        output.value = err.message;
+        setConnectionStatus("error", "Failed");
+      }
+    }
+
+    async function loadTools() {
+      const output = document.getElementById("toolsOutput");
+      output.value = "Loading tools...";
+
+      try {
+        const res = await fetch("/api/tools");
+        const data = await res.json();
+        output.value = pretty(data);
+      } catch (err) {
+        output.value = err.message;
+      }
+    }
+
+    async function callTool() {
+      const name = document.getElementById("toolName").value.trim();
+      const argsText = document.getElementById("toolArgs").value.trim();
+      const output = document.getElementById("callOutput");
+
+      if (!name) {
+        output.value = "Tool name is required.";
+        return;
+      }
+
+      let args = {};
+      try {
+        args = argsText ? JSON.parse(argsText) : {};
+      } catch (e) {
+        output.value = "Arguments JSON is invalid.\n\n" + e.message;
+        return;
+      }
+
+      output.value = "Calling tool...";
+
+      try {
+        const res = await fetch("/api/call", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, arguments: args })
+        });
+
+        const data = await res.json();
+        output.value = pretty(data);
+      } catch (err) {
+        output.value = err.message;
+      }
+    }
+  </script>
+</body>
+</html>
