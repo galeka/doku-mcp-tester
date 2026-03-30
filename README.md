@@ -101,4 +101,6 @@ doku-mcp-tester/
 
 ## License
 
-MIT
+This software is free to use, copy, modify, and distribute for personal and non-commercial purposes.  
+Selling this software or including it in a paid product is not permitted without written permission.  
+See [LICENSE](LICENSE) for full terms.
